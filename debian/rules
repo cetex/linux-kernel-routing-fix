@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# The DKMS build will be performed at install time,
+	# but let's build the module here to confirm it compiles.
+	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(CURDIR)/src modules

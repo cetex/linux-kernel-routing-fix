@@ -1,0 +1,46 @@
+name: Build and Package Module
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build_and_package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential linux-headers-$(uname -r) dkms debhelper dpkg-dev fakeroot
+
+      - name: Build kernel module
+        run: |
+          make -C src/ build
+
+      - name: Create DKMS tarball
+        run: |
+          mkdir -p ip_route_input_slow_hook-0.1/
+          cp -r dkms.conf src/ ip_route_input_slow_hook-0.1/
+          tar czf ip_route_input_slow_hook-0.1.dkms.tar.gz ip_route_input_slow_hook-0.1
+          ls -l
+
+      - name: Build Debian package
+        run: |
+          # Ensure debian/changelog is set correctly
+          # Build the .deb package
+          dpkg-buildpackage -us -uc
+          mv ../ip-route-input-slow-hook-dkms_0.1-1_all.deb .
+          ls -l ..
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            ip_route_input_slow_hook-0.1.dkms.tar.gz
+            ip-route-input-slow-hook-dkms_0.1-1_all.deb
